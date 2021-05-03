@@ -15,7 +15,10 @@ class DataBase():
         self.connection = con
         self.cursor = con.cursor()
 
-    def get_skulist(self, shop_name) -> query_result:
+    def commit(self):
+        self.connection.commit()
+
+    def get_skulist(self, shop_name):
         __get_query = 'SELECT product_name, sku, daily_min FROM sku_table WHERE shop=%s; '
         try:
             return self.cursor.execute(__get_query.format(shop_name)).fetchall()
@@ -24,20 +27,20 @@ class DataBase():
             return None
 
     def update(self, price, sku):
-        __insert_query = 'UPDATE sku_table SET daily_min = %s WHERE sku = %s'
+        __insert_query = 'UPDATE sku_table SET daily_min = ? WHERE sku = ?; '
         try:
-            self.cursor.execute(__insert_query.format(price, sku))
+            self.cursor.execute(__insert_query, (price, sku))
         except sqlite3.Error as e:
             print("Insert Error: ", e)
 
     def insert_eod(self):
         __eod_query = 'SELECT DISTINCT shop FROM sku_table'
-        __eod_query2 = 'SELECT product_name, sku, daily_min FROM sku_table WHERE shop = %s'
+        __eod_query2 = 'SELECT product_name, sku, daily_min FROM sku_table WHERE shop = ?; '
         try:
             shops = self.cursor.execute(__eod_query).fetchall()
             for shop in shops:
                 new_df = pd.DataFrame(columns={'product_name', 'sku', 'daily_min'})
-                result = self.cursor.execute(__eod_query2.format(shop))
+                result = self.cursor.execute(__eod_query2, (shop))
                 for row in result:
                     new_df.append(row)
         except sqlite3.Error as e:
@@ -50,6 +53,9 @@ class DataBase():
         except sqlite3.Error as e:
             print("Create Table Error: ", e)
     
+    def insert(self, sku, shop, daily_min, product_name):
+        self.cursor.execute('INSERT OR REPLACE INTO sku_table (sku, shop, daily_min, product_name) VALUES (?, ?, ?, ?)', (sku, shop, daily_min, product_name))
+        self.commit()
 
 if __name__ == '__main__':
     db = DataBase('monitor.db')
@@ -69,3 +75,8 @@ if __name__ == '__main__':
 
     #db.create_table(alter_sku)
     #db.create_table(create_history_table)
+
+    df = pd.read_excel('new_monitor.xlsx')
+
+    for i in range(len(df)):
+        db.insert(int(df['sku'][i]), df['shop'][i], 0, df['product_name'][i])
