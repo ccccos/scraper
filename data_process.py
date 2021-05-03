@@ -19,9 +19,9 @@ class DataBase():
         self.connection.commit()
 
     def get_skulist(self, shop_name):
-        __get_query = 'SELECT product_name, sku, daily_min FROM sku_table WHERE shop=%s; '
+        __get_query = 'SELECT product_name, sku, daily_min FROM sku_table WHERE shop=?; '
         try:
-            return self.cursor.execute(__get_query.format(shop_name)).fetchall()
+            return self.cursor.execute(__get_query, shop_name).fetchall()
         except sqlite3.Error as e:
             print("Fetch All Error: ", e)
             return None
@@ -30,19 +30,22 @@ class DataBase():
         __insert_query = 'UPDATE sku_table SET daily_min = ? WHERE sku = ?; '
         try:
             self.cursor.execute(__insert_query, (price, sku))
+            self.commit()
         except sqlite3.Error as e:
             print("Insert Error: ", e)
 
     def insert_eod(self):
         __eod_query = 'SELECT DISTINCT shop FROM sku_table'
-        __eod_query2 = 'SELECT product_name, sku, daily_min FROM sku_table WHERE shop = ?; '
+        __eod_query2 = 'SELECT sku, daily_min FROM sku_table WHERE shop = ?; '
+        __dif_query = 'SELECT sku, price FROM history_table INNER JOIN sku_table ON history_table.sku = sku_table.sku WHERE ' ###TODO
+        __insert_eod = 'INSERT INTO history_table VALUES (?, ?, ?);'
         try:
             shops = self.cursor.execute(__eod_query).fetchall()
             for shop in shops:
-                new_df = pd.DataFrame(columns={'product_name', 'sku', 'daily_min'})
-                result = self.cursor.execute(__eod_query2, (shop))
-                for row in result:
-                    new_df.append(row)
+                result = self.cursor.execute(__eod_query2, (shop)).fetchall()
+                new_df = pd.DataFrame(result, columns={'sku', 'daily_min'})
+                for i in range(len(new_df)):
+                    self.cursor.execute(__insert_eod, (new_df['sku'][i], datetime.today(), new_df['daily_min'][i]))
         except sqlite3.Error as e:
             print("Get EOD Error: ", e)
             shops = None
@@ -70,6 +73,12 @@ if __name__ == '__main__':
                                 shop_name text NOT NULL,
                                 price_data text,
                                 FOREIGN KEY (shop_name) REFERENCES sku_table (shop)
+                        ); '''
+    new_history_table = '''CREATE TABLE IF NOT EXISTS history_table (
+                                sku integer,
+                                date text,
+                                price integer,
+                                FOREIGN KEY (sku) REFERENCES sku_table (sku)
                         ); '''
     alter_sku = r' ALTER TABLE sku_table ADD product_name text; '
 

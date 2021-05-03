@@ -2,6 +2,7 @@ import os
 import collections
 import requests
 import code.scraper.data_process as DP
+import Notification_Sender
 import pandas as pd
 
 class BestBuy():
@@ -9,14 +10,13 @@ class BestBuy():
         self.maxTry = 5
         self.dp = DP.DataBase(db='monitor.db')
         self.name = 'BestBuy'
-        self.df = pd.DataFrame(columns={'product_name', 'sku', 'daily_min'})
+        self.df = None
 
     def reset(self):
         self.maxTry = 5
         
     def get_skulist(self):
-        tmp_cursor = dp.get_skulist(self.name)
-        self.df.append(tmp_cursor)
+        self.df = pd.DataFrame(dp.get_skulist(self.name), columns={'product_name', 'sku', 'daily_min'})
         
     def get_Price(self):
         __url = 'https://api.bestbuy.com/v1/products((search={}))?apiKey=UFtoIkXmy0E6BMn5ddG6CE5u&sort=regularPrice.asc&show=regularPrice&format=json'
@@ -35,4 +35,15 @@ class BestBuy():
 
     def insert_hourlydata(self, df):
         for i in range(len(df)):
-            dp.update(df['daily_min'].iloc[i], df['sku'].iloc[i])
+            dp.update(df['daily_min'][i], df['sku'][i])
+    
+    def send_email(self, df):
+        email = Notification_Sender(df)
+        email.send_email()
+
+if __name__ == '__main__':
+    bb = BestBuy()
+
+    bb.get_skulist()
+    bb.get_Price()
+    bb.send_email()
