@@ -18,10 +18,12 @@ class DataBase():
     def commit(self):
         self.connection.commit()
 
-    def get_skulist(self, shop_name):
-        __get_query = 'SELECT product_name, sku, daily_min FROM sku_table WHERE shop=?; '
+    def get_skulist(self, shop_name) -> pd.DataFrame:
+        __get_query = 'SELECT sku, product_name, daily_min FROM sku_table WHERE shop=?; '
         try:
-            return self.cursor.execute(__get_query, shop_name).fetchall()
+            #return self.cursor.execute(__get_query, (shop_name,)).fetchall()
+            tmp = pd.read_sql_query(sql=__get_query, con=self.connection, params=[shop_name])
+            return tmp
         except sqlite3.Error as e:
             print("Fetch All Error: ", e)
             return None
@@ -42,7 +44,7 @@ class DataBase():
         try:
             shops = self.cursor.execute(__eod_query).fetchall()
             for shop in shops:
-                result = self.cursor.execute(__eod_query2, (shop)).fetchall()
+                result = self.cursor.execute(__eod_query2, (shop,)).fetchall()
                 new_df = pd.DataFrame(result, columns={'sku', 'daily_min'})
                 for i in range(len(new_df)):
                     self.cursor.execute(__insert_eod, (new_df['sku'][i], datetime.today(), new_df['daily_min'][i]))
@@ -85,7 +87,9 @@ if __name__ == '__main__':
     #db.create_table(alter_sku)
     #db.create_table(create_history_table)
 
-    df = pd.read_excel('new_monitor.xlsx')
+    '''    df = pd.read_excel('new_monitor.xlsx')
 
     for i in range(len(df)):
-        db.insert(int(df['sku'][i]), df['shop'][i], 0, df['product_name'][i])
+        db.insert(int(df['sku'][i]), df['shop'][i], 0, df['product_name'][i])'''
+
+    #db.get_skulist('BestBuy')
