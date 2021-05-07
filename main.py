@@ -1,10 +1,11 @@
-import code.scraper.BestBuy as BB
-import code.scraper.data_process as data
-import code.scraper.notification_sender as ns
+import BestBuy as BB
+import data_process as data
+import notification_sender as ns
+import time
 
+bb = BB.BestBuy()
 
-class Monitor():
-    def __init__(self):
-        self.db = data.DataBase('monitor.db')
-        self.bb = BB.BestBuy()
+while True:
+    bb.run()
+    time.sleep(3600)
 

@@ -1,12 +1,10 @@
 import sqlite3
 import datetime
 import pandas as pd
-
 '''This module functions are to connect to DB and inesrt new daily record'''
 class DataBase():
     def __init__(self, db):
         self.date = datetime.datetime.now().strftime(r'%Y-%m-%d')
-        self.df = pd.DataFrame(columns={'shop_name', 'price_data'})
         con = None
         try:
             con = sqlite3.connect(db)
@@ -19,19 +17,18 @@ class DataBase():
         self.connection.commit()
 
     def get_skulist(self, shop_name) -> pd.DataFrame:
-        __get_query = 'SELECT sku, product_name, daily_min FROM sku_table WHERE shop=?; '
+        __get_query = 'SELECT sku, product_name, daily_min, updated_on FROM sku_table WHERE shop=?; '
         try:
-            #return self.cursor.execute(__get_query, (shop_name,)).fetchall()
             tmp = pd.read_sql_query(sql=__get_query, con=self.connection, params=[shop_name])
             return tmp
         except sqlite3.Error as e:
             print("Fetch All Error: ", e)
             return None
 
-    def update(self, price, sku):
-        __insert_query = 'UPDATE sku_table SET daily_min = ? WHERE sku = ?; '
+    def update(self, price, updated_on, shop, sku):
+        __insert_query = 'UPDATE sku_table SET daily_min = ?, updated_on = ? WHERE shop= ? AND sku = ?; '
         try:
-            self.cursor.execute(__insert_query, (price, sku))
+            self.cursor.execute(__insert_query, (price, updated_on, shop, sku))
             self.commit()
         except sqlite3.Error as e:
             print("Insert Error: ", e)
@@ -58,8 +55,8 @@ class DataBase():
         except sqlite3.Error as e:
             print("Create Table Error: ", e)
     
-    def insert(self, sku, shop, daily_min, product_name):
-        self.cursor.execute('INSERT OR REPLACE INTO sku_table (sku, shop, daily_min, product_name) VALUES (?, ?, ?, ?)', (sku, shop, daily_min, product_name))
+    def insert(self, sku, shop, daily_min, product_name, updated_on):
+        self.cursor.execute('INSERT OR REPLACE INTO sku_table (sku, shop, daily_min, product_name, updated_on) VALUES (?, ?, ?, ?, ?)', (sku, shop, daily_min, product_name, updated_on))
         self.commit()
 
 if __name__ == '__main__':
@@ -67,8 +64,9 @@ if __name__ == '__main__':
     create_sku_table = ''' CREATE TABLE IF NOT EXISTS sku_table (
                             sku integer PRIMARY KEY,
                             shop text NOT NULL,        
-                            daily_min integer,
-                            product_name text   
+                            daily_min real,
+                            product_name text,
+                            updated_on text   
                         ); '''
     create_history_table = '''CREATE TABLE IF NOT EXISTS history_table (
                                 date text PRIMARY KEY,
@@ -84,12 +82,10 @@ if __name__ == '__main__':
                         ); '''
     alter_sku = r' ALTER TABLE sku_table ADD product_name text; '
 
-    #db.create_table(alter_sku)
+    #db.create_table(create_sku_table)
     #db.create_table(create_history_table)
 
-    '''    df = pd.read_excel('new_monitor.xlsx')
+    df = pd.read_excel('new_monitor.xlsx')
 
     for i in range(len(df)):
-        db.insert(int(df['sku'][i]), df['shop'][i], 0, df['product_name'][i])'''
-
-    #db.get_skulist('BestBuy')
+        db.insert(int(df['sku'].iloc[i]), 'BestBuy', 9.99, df['product_name'].iloc[i], '2021-05-06 10:00:05')

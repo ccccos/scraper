@@ -5,16 +5,16 @@ import random
 
 '''This module is used to send notification email'''
 class Notification_Sender():
-    def __init__(self, data):
+    def __init__(self, name, data):
         self.smtp = smtplib.SMTP_SSL
         self.sender = 'miniteckmonitor@gmail.com'
         self.receiver = 'miniteckmonitor@gmail.com'
         self.password = 'Tea4five'
-        self.date = datetime.datetime.now().strftime(r'%Y-%m-%d')
-        self.message = MIMEText(str(data))
+        self.date = datetime.datetime.now().strftime(r'%Y-%m-%d %H:%M')
+        self.message = MIMEText('Below displays only updated prices from last email: \n' + str(data))
         self.message['From'] = self.sender
         self.message['To'] = self.receiver
-        self.message['Subject'] = 'Notification Email for ' + self.date
+        self.message['Subject'] = 'Notification Email for ' + name + ' ' + self.date
 
     def send_email(self):
         try:
