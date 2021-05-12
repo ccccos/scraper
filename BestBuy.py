@@ -64,7 +64,8 @@ class BestBuy():
         self.get_skulist()
         self.get_Price()
         self.insert_data()
-        self.send_email()
+        if len(self.df) > 0:
+            self.send_email()
 
 if __name__ == '__main__':
     bb = BestBuy()
